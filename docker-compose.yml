@@ -1,0 +1,48 @@
+version: "3.7"
+
+services:
+  postgres-mealplan:
+    restart: unless-stopped
+    image: postgres:14.2-alpine
+    volumes:
+      - "mealplan-postgres-data:/var/lib/postgresql/data"
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=admin
+      - POSTGRES_PASSWORD=admin123
+      - POSTGRES_DB=mealplan_db
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U admin -d mealplan_db" ]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
+
+  mongo-mealplan:
+    restart: unless-stopped
+    image: mongo:latest
+    volumes:
+      - "mealplan-mongo-data:/data/db"
+    ports:
+      - "27017:27017"
+    environment:
+      - CONN_STR=mongodb://admin:admin123@mealplan_db
+    command: '/bin/bash -c "sleep 5; mongosh $$CONN_STR --eval \"show dbs;\""'
+    depends_on:
+      - mongodb
+
+  mongodb:
+    image: mongo:latest
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=admin
+      - MONGO_INITDB_ROOT_PASSWORD=admin123
+      - MONGO_INITDB_DATABASE=mealplan_db
+    volumes:
+      - type: bind
+        source: mealplan-mongo-data
+        target: /data/db
+
+volumes:
+  mealplan-postgres-data:
+  mealplan-mongo-data:
